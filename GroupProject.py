@@ -59,8 +59,6 @@ def remove_unwanted_columns(df):
             "Bwd PSH Flags",
             "Fwd URG Flags",
             "Bwd URG Flags",
-            "Flow Byts/s",
-            "Flow Pkts/s",
         ],
         axis=1,
         inplace=True,
@@ -261,9 +259,6 @@ def knn_roc(X, y):
 
 def knn_model(X_train, X_test, y_train, y_test, X, y):
 
-    X.replace([np.inf, -np.inf], np.nan, inplace=True)
-    X = np.nan_to_num(X)
-
     knn = KNeighborsClassifier(n_neighbors=3).fit(X_train, y_train)
     dummy = DummyClassifier(strategy="most_frequent").fit(X_train, y_train)
     print("------------kNN Model-------------")
@@ -283,8 +278,12 @@ def main():
     df = pd.read_csv("Final_Dataset.csv")
     df = remove_unwanted_columns(df)
     # df = clean_dataset(df)
-    X = df.iloc[:, range(60)]
+    X = df.iloc[:, range(62)]
     y = df["Label"]
+    X.replace([np.inf, -np.inf], np.nan, inplace=True)
+    X = np.nan_to_num(X)
+    df.drop(df[df['Flow Byts/s'] == 'Infinity'].index, inplace=True)
+    df.drop(df[df['Flow Pkts/s'] == 'Infinity'].index, inplace=True)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.25, random_state=21
     )
