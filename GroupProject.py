@@ -176,14 +176,14 @@ def randomForestModel(X_train, y_train, X_test, y_test):
 
 
 def knn_performance(X, y, ki_range):
-    kf = KFold(n_splits=10)
+    kf = KFold(n_splits=5)
     plt.rc("font", size=18)
     plt.rcParams["figure.constrained_layout.use"] = True
     mean_error_f1 = []
     std_error_f1 = []
 
     for ki in ki_range:
-        model = KNeighborsClassifier(n_neighbors=ki)
+        model = KNeighborsClassifier(n_neighbors=ki, weights='uniform')
         model.fit(X, y)
         temp_f1 = []
         temp_accuracy = []
@@ -202,8 +202,7 @@ def knn_performance(X, y, ki_range):
     )
     plt.xlabel("k")
     plt.ylabel("Mean F1 Score")
-    plt.title("Error Bar Graph of F1 Score and k")
-    plt.legend(bbox_to_anchor=(0, 1), loc="upper left", ncol=1)
+    plt.title("Graph of F1 Score and k")
     plt.tight_layout()
     plt.show()
 
@@ -219,7 +218,7 @@ def knn_roc(X, y):
     )
 
     # classifier
-    clf = OneVsRestClassifier(KNeighborsClassifier(n_neighbors=3))
+    clf = OneVsRestClassifier(KNeighborsClassifier(n_neighbors=3, weights='uniform'))
     y_score = clf.fit(X_train, y_train).predict(X_test)
 
     # Compute ROC curve and ROC area for each class
@@ -247,19 +246,19 @@ def knn_roc(X, y):
                 fpr[i], tpr[i], label="ROC curve for Tor (area = %0.2f)" % roc_auc[i]
             )
 
-    plt.plot([0, 1], [0, 1], "k--")
+    plt.plot([0, 1], [0, 1], "k--", label="ROC Curve for Baseline Classifier")
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
-    plt.legend(loc="lower right")
+    plt.legend(loc="lower right", fontsize='xx-small')
     plt.title("ROC Curve for all Classes")
     plt.show()
 
 
 def knn_model(X_train, X_test, y_train, y_test, X, y):
 
-    knn = KNeighborsClassifier(n_neighbors=3).fit(X_train, y_train)
+    knn = KNeighborsClassifier(n_neighbors=3, weights='uniform').fit(X_train, y_train)
     dummy = DummyClassifier(strategy="most_frequent").fit(X_train, y_train)
     print("------------kNN Model-------------")
     y_pred = knn.predict(X_test)
@@ -268,7 +267,7 @@ def knn_model(X_train, X_test, y_train, y_test, X, y):
     y_pred_baseline = dummy.predict(X_test)
     printScores(y_test, y_pred_baseline)
     ki_range = [3, 5, 7]
-    print("Set of Nearest Neighbours Considered", ki_range)
+    print("Set of Nearest Neighbors Considered", ki_range)
     knn_performance(X, y, ki_range)
     knn_roc(X, y)
     plotConfusionMatrix(y, knn.predict(X))
