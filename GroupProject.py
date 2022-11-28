@@ -110,22 +110,16 @@ def printScores(y_test,y_pred):
     print('F1 score: %.2f%%' % (f1_score(y_test, y_pred, average= 'weighted')*100))
 
 def randomForestROCCurve(X,y):
-    classes = ['VPN','No VPN','Tor']
+    classes = ['Normal Traffic','VPN','Tor']
     y = label_binarize(y, classes=classes)
     n_classes = 3
     
-
-    # Add noisy features to make the problem harder
-    # random_state = np.random.RandomState(0)
-    # n_samples, n_features = X.shape
-    # X = np.c_[X, random_state.randn(n_samples, 200 * n_features)]
-
     # shuffle and split training and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.5,
                                                         random_state=0)
 
     # Learn to predict each class against the other
-    classifier = OneVsRestClassifier(RandomForestClassifier(n_estimators = 150, max_features = 'sqrt', criterion = 'entropy', random_state = 42,max_depth=5))
+    classifier = OneVsRestClassifier(RandomForestClassifier(n_estimators = 100, max_features = 10, criterion = 'entropy', random_state = 42,max_depth=20))
     y_score = classifier.fit(X_train, y_train).predict(X_test)
 
     # Compute ROC curve and ROC area for each class
@@ -172,6 +166,8 @@ def randomForestROCCurve(X,y):
 
 def randomForestCrossValidation1(X_train,y_train):
     # sns.set(rc={'figure.figsize':(9,6)})
+    plt.figure()
+    plt.rc('font', size=10)
     maxFeatures = [10,20,30,50,58]
     nEstimators = [10,20,50,75,100,150,200,250]
     for p in maxFeatures:
@@ -192,17 +188,14 @@ def randomForestCrossValidation1(X_train,y_train):
     plt.ylabel("F1 Score")
     plt.title("F1 Score vs nEstimators for different values of MaxFeaures")
 
-    plt.legend(loc="best", fontsize=15, bbox_to_anchor=(1.38, 1))
+    plt.legend(loc="lower right")
     plt.show()
 
-
-    # sns.set(rc={'figure.figsize':(9,6)})
+def randomForestCrossValidation2(X_train, y_train):
     plt.figure()
-    # plt.xlim([0.0, 1.0])
-    # plt.ylim([0.0, 1.05])
-
-    maxDepth = [1,2,5,10,15,20]
-    nEstimators = [10,20,50,75,100,150,200,250]
+    plt.rc('font', size=10)
+    maxDepth = [1, 2, 5, 10, 15, 20]
+    nEstimators = [10, 20, 50, 75, 100, 150, 200, 250]
     for p in maxDepth:
         mean_array = []
         std_array = []
@@ -220,18 +213,20 @@ def randomForestCrossValidation1(X_train,y_train):
     plt.xlabel("nEstimators Value")
     plt.ylabel("F1 Score")
     plt.title("F1 Score vs nEstimators for different values of maxDepth")
-    plt.legend( loc='lower right')
+
+    plt.legend(loc="lower right")
     plt.show()
 
 
 def randomForestModel(X_train, y_train, X_test, y_test):
     # Creating the Training and Test set from data
 
-    classifier = RandomForestClassifier(n_estimators = 150, max_features = 'sqrt', criterion = 'entropy', random_state = 42,max_depth=5)
+    classifier = RandomForestClassifier(n_estimators = 100, max_features = 10, criterion = 'entropy', random_state = 42,max_depth=20)
     classifier.fit(X_train, y_train)
     # Predicting the Test set results
     y_pred = classifier.predict(X_test)
     # getAccuracy(classifier,X,y)
+    plotConfusionMatrix(y_test,y_pred)
     printScores(y_test, y_pred)
 
 
@@ -349,14 +344,16 @@ def main():
 
     # kNN Model
 
-    knn_model(X_train, X_test, y_train, y_test, X, y)
+    # knn_model(X_train, X_test, y_train, y_test, X, y)
 
     # Random Forest
     # randomForestCrossValidation1(X_train,y_train)
-    randomForestCrossValidation2(X_train,y_train)
+    # randomForestCrossValidation2(X_train,y_train)
     
     randomForestModel(X_train,y_train,X_test,y_test)   
     randomForestROCCurve(X,y)
+   
+    
     
 
     
