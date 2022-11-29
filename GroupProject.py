@@ -352,8 +352,8 @@ def main():
     # randomForestCrossValidation1(X_train,y_train)
     # randomForestCrossValidation2(X_train,y_train)
     
-    #randomForestModel(X_train,y_train,X_test,y_test)
-    #randomForestROCCurve(X,y)
+    randomForestModel(X_train,y_train,X_test,y_test)
+    randomForestROCCurve(X,y)
 
     
 if __name__ == "__main__":
