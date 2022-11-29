@@ -3,7 +3,9 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.dummy import DummyClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.svm import LinearSVC
+
 from numpy import std
 from numpy import mean
 from sklearn.datasets import make_classification
@@ -31,7 +33,10 @@ def clean_dataset(df):
     df.dropna(inplace=True)
     indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
     return df[indices_to_keep].astype(np.float64)
-
+def clean_dataset_2(df):
+    df = df.replace([np.inf, -np.inf], np.nan).dropna(axis=0)
+    df.dropna(inplace=True)
+    return df
 
 def remove_unwanted_columns(df):
     df.drop(
@@ -86,10 +91,124 @@ def getAccuracy(model, X, y):
     # report the model performance
     print("Mean Accuracy: %.3f (%.3f)" % (mean(n_scores), std(n_scores)))
 
+def tag_output_values(lable_value):
+    if (lable_value == "Normal Traffic"):
+        return 1
+    elif (lable_value == "Tor"):
+        return 0
+    else:
+        return -1
 
-def logisticRegressionModel():
-    # Code Here
+
+def logisticRegressionModel(df):
+    # Constructing SVM Model with c=1 and degree =3
+    print("logisticRegressionModel")
+    df['Out_put'] = df['Label'].apply(tag_output_values)
+    y = df['Out_put']
+    necessary_col = list(df.columns)
+    necessary_col.remove("Out_put")
+    necessary_col.remove("Label")
+    X = df[necessary_col]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0, train_size=.8)
+    degree = PolynomialFeatures(degree=3, include_bias=False)
+    X_poly_features = degree.fit_transform(X_train)
+    X_test_features = degree.fit_transform(X_test)
+    model = LinearSVC(C=1, max_iter=10000)
+    model.fit(X_poly_features, y_train)
+    y_pred = model.predict(X_test_features)
+    printScores(y_test, y_pred)
+    plotConfusionMatrix(y_test, y_pred)
     print("Logistic Regression Code")
+def LogisticRegressionROCCurve(df):
+    classes = ['Normal Traffic', 'VPN', 'Tor']
+    n_classes = 3
+    # shuffle and split training and test sets
+    df['Out_put'] = df['Label'].apply(tag_output_values)
+    y = df['Label']
+    y = label_binarize(y, classes=classes)
+    necessary_col = list(df.columns)
+    necessary_col.remove("Out_put")
+    necessary_col.remove("Label")
+    X = df[necessary_col]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0, train_size=.95)
+    degree = PolynomialFeatures(degree=3, include_bias=False)
+    X_poly_features = degree.fit_transform(X_train)
+    X_test_features = degree.fit_transform(X_test)
+
+    # Learn to predict each class against the other
+    classifier = OneVsRestClassifier(LinearSVC(C=1, max_iter=10000))
+    y_score = classifier.fit(X_poly_features, y_train).predict(X_test_features)
+
+    # Compute ROC curve and ROC area for each class
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    for i in range(n_classes):
+        fpr[i], tpr[i], _ = roc_curve(y_test[:, i], y_score[:, i])
+        roc_auc[i] = auc(fpr[i], tpr[i])
+
+    # Compute micro-average ROC curve and ROC area
+    fpr["micro"], tpr["micro"], _ = roc_curve(y_test.ravel(), y_score.ravel())
+    roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+
+    # Plot of a ROC curve for a specific class
+    plt.figure()
+    plt.plot(fpr[2], tpr[2], label='ROC curve (area = %0.2f)' % roc_auc[2])
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver operating characteristic example')
+    plt.legend(loc="lower right")
+    plt.show()
+    # Plot ROC curve
+    plt.figure()
+    plt.plot(fpr["micro"], tpr["micro"],
+             label='micro-average ROC curve (area = {0:0.2f})'
+                   ''.format(roc_auc["micro"]))
+    for i in range(n_classes):
+        plt.plot(fpr[i], tpr[i], label='ROC curve of class {0} (area = {1:0.2f})'
+                                       ''.format(classes[i], roc_auc[i]))
+
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve')
+    plt.legend(loc="lower right")
+    plt.show()
+
+def logisitcRegressionModelKfold(df):
+    df['Out_put'] = df['Label'].apply(tag_output_values)
+    y = df['Out_put']
+    necessary_col = list(df.columns)
+    necessary_col.remove("Out_put")
+    necessary_col.remove("Label")
+    X = df[necessary_col]
+    c_values = [0.001, 0.01, 0.1, 1, 10, 100, 1000]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0, train_size=.8)
+    degree = PolynomialFeatures(degree=3, include_bias=False)
+    X_poly_features = degree.fit_transform(X_train)
+    X_test_features = degree.fit_transform(X_test)
+    mean_array = []
+    std_array = []
+    for c in c_values:
+        model = LinearSVC(C=c, max_iter=10000)
+        scr = cross_val_score(model, X=X_poly_features, y=y_train, cv=5, scoring="f1_micro")
+        mean_array.append(np.array(scr).mean())
+        std_array.append(np.array(scr).std())
+
+    plt.errorbar(
+        c_values, mean_array, yerr=std_array, label="C values}"
+    )
+    plt.xlabel("nEstimators Value")
+    plt.ylabel("F1 Score")
+    plt.title("F1 Score  for different values of C")
+
+    plt.legend(loc="lower right")
+    plt.show()
 
 
 def printScores(y_test, y_pred):
@@ -354,6 +473,13 @@ def main():
     
     randomForestModel(X_train,y_train,X_test,y_test)
     randomForestROCCurve(X,y)
+
+def LogisticRegression():
+    df = pd.read_csv("Final_Dataset.csv")
+    df = remove_unwanted_columns(df)
+    df = clean_dataset(df)
+    logisticRegressionModel(df)
+    LogisticRegressionROCCurve(df)
 
     
 if __name__ == "__main__":
