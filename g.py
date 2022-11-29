@@ -3,9 +3,9 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.dummy import DummyClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.svm import LinearSVC
-
 from numpy import std
 from numpy import mean
 from sklearn.datasets import make_classification
@@ -18,7 +18,7 @@ from sklearn.preprocessing import StandardScaler, label_binarize
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, f1_score, roc_curve, auc
 from sklearn.model_selection import StratifiedKFold, GridSearchCV, RandomizedSearchCV
-from sklearn.metrics import accuracy_score, recall_score, precision_score, confusion_matrix,f1_score
+from sklearn.metrics import accuracy_score, recall_score, precision_score, confusion_matrix, f1_score
 from sklearn.metrics import roc_curve, auc
 from sklearn.preprocessing import label_binarize
 from sklearn.multiclass import OneVsRestClassifier
@@ -30,13 +30,11 @@ warnings.filterwarnings("ignore")
 
 
 def clean_dataset(df):
-    df.dropna(inplace=True)
-    indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
-    return df[indices_to_keep].astype(np.float64)
-def clean_dataset_2(df):
     df = df.replace([np.inf, -np.inf], np.nan).dropna(axis=0)
     df.dropna(inplace=True)
+    # indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
     return df
+
 
 def remove_unwanted_columns(df):
     df.drop(
@@ -69,6 +67,15 @@ def remove_unwanted_columns(df):
     return df
 
 
+def tag_output_values(lable_val):
+    if (lable_val == "Normal Traffic"):
+        return 1
+    elif (lable_val == "Tor"):
+        return 0
+    else:
+        return -1
+
+
 def plotConfusionMatrix(y_test, ypred):
     fig = plt.figure(figsize=(10, 5), dpi=100)
     ax1 = fig.add_subplot(111)
@@ -91,14 +98,6 @@ def getAccuracy(model, X, y):
     # report the model performance
     print("Mean Accuracy: %.3f (%.3f)" % (mean(n_scores), std(n_scores)))
 
-def tag_output_values(lable_value):
-    if (lable_value == "Normal Traffic"):
-        return 1
-    elif (lable_value == "Tor"):
-        return 0
-    else:
-        return -1
-
 
 def logisticRegressionModel(df):
     # Constructing SVM Model with c=1 and degree =3
@@ -119,6 +118,8 @@ def logisticRegressionModel(df):
     printScores(y_test, y_pred)
     plotConfusionMatrix(y_test, y_pred)
     print("Logistic Regression Code")
+
+
 def LogisticRegressionROCCurve(df):
     classes = ['Normal Traffic', 'VPN', 'Tor']
     n_classes = 3
@@ -180,6 +181,7 @@ def LogisticRegressionROCCurve(df):
     plt.legend(loc="lower right")
     plt.show()
 
+
 def logisitcRegressionModelKfold(df):
     df['Out_put'] = df['Label'].apply(tag_output_values)
     y = df['Out_put']
@@ -222,23 +224,26 @@ def printScores(y_test, y_pred):
         % (recall_score(y_test, y_pred, average="weighted") * 100)
     )
 
-def printScores(y_test,y_pred):
-    print('Accuracy score: %.2f%%' %(accuracy_score(y_test, y_pred)*100))
-    print('Precision score: %.2f%%' % (precision_score(y_test, y_pred, average='weighted')*100))
-    print('Recall score: %.2f%%' % (recall_score(y_test, y_pred, average='weighted')*100))
-    print('F1 score: %.2f%%' % (f1_score(y_test, y_pred, average='weighted')*100))
 
-def randomForestROCCurve(X,y):
+def printScores(y_test, y_pred):
+    print('Accuracy score: %.2f%%' % (accuracy_score(y_test, y_pred) * 100))
+    print('Precision score: %.2f%%' % (precision_score(y_test, y_pred, average='weighted') * 100))
+    print('Recall score: %.2f%%' % (recall_score(y_test, y_pred, average='weighted') * 100))
+    print('F1 score: %.2f%%' % (f1_score(y_test, y_pred, average='weighted') * 100))
+
+
+def randomForestROCCurve(X, y):
     classes = ['Normal Traffic', 'VPN', 'Tor']
     y = label_binarize(y, classes=classes)
     n_classes = 3
-    
+
     # shuffle and split training and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.5,
                                                         random_state=0)
 
     # Learn to predict each class against the other
-    classifier = OneVsRestClassifier(RandomForestClassifier(n_estimators = 100, max_features = 10, criterion = 'entropy', random_state = 42,max_depth=20))
+    classifier = OneVsRestClassifier(
+        RandomForestClassifier(n_estimators=100, max_features=10, criterion='entropy', random_state=42, max_depth=20))
     y_score = classifier.fit(X_train, y_train).predict(X_test)
 
     # Compute ROC curve and ROC area for each class
@@ -268,11 +273,11 @@ def randomForestROCCurve(X,y):
     # Plot ROC curve
     plt.figure()
     plt.plot(fpr["micro"], tpr["micro"],
-            label='micro-average ROC curve (area = {0:0.2f})'
-                ''.format(roc_auc["micro"]))
+             label='micro-average ROC curve (area = {0:0.2f})'
+                   ''.format(roc_auc["micro"]))
     for i in range(n_classes):
         plt.plot(fpr[i], tpr[i], label='ROC curve of class {0} (area = {1:0.2f})'
-                                    ''.format(classes[i], roc_auc[i]))
+                                       ''.format(classes[i], roc_auc[i]))
 
     plt.plot([0, 1], [0, 1], 'k--')
     plt.xlim([0.0, 1.0])
@@ -284,12 +289,12 @@ def randomForestROCCurve(X,y):
     plt.show()
 
 
-def randomForestCrossValidation1(X_train,y_train):
+def randomForestCrossValidation1(X_train, y_train):
     # sns.set(rc={'figure.figsize':(9,6)})
     plt.figure()
     plt.rc('font', size=10)
-    maxFeatures = [10,20,30,50,58]
-    nEstimators = [10,20,50,75,100,150,200,250]
+    maxFeatures = [10, 20, 30, 50, 58]
+    nEstimators = [10, 20, 50, 75, 100, 150, 200, 250]
     for p in maxFeatures:
         mean_array = []
         std_array = []
@@ -342,12 +347,13 @@ def randomForestCrossValidation2(X_train, y_train):
 def randomForestModel(X_train, y_train, X_test, y_test):
     # Creating the Training and Test set from data
 
-    classifier = RandomForestClassifier(n_estimators = 100, max_features = 10, criterion = 'entropy', random_state = 42,max_depth=20)
+    classifier = RandomForestClassifier(n_estimators=100, max_features=10, criterion='entropy', random_state=42,
+                                        max_depth=20)
     classifier.fit(X_train, y_train)
     # Predicting the Test set results
     y_pred = classifier.predict(X_test)
     # getAccuracy(classifier,X,y)
-    plotConfusionMatrix(y_test,y_pred)
+    plotConfusionMatrix(y_test, y_pred)
     printScores(y_test, y_pred)
 
 
@@ -390,7 +396,7 @@ def knn_roc(X, y):
 
     # shuffle and split training and test sets
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y_roc, test_size=0.25, random_state=0
+        X, y_roc, test_size=0.33, random_state=0
     )
 
     # classifier
@@ -433,7 +439,6 @@ def knn_roc(X, y):
 
 
 def knn_model(X_train, X_test, y_train, y_test, X, y):
-
     knn = KNeighborsClassifier(n_neighbors=3, weights='uniform').fit(X_train, y_train)
     dummy = DummyClassifier(strategy="most_frequent").fit(X_train, y_train)
     print("------------kNN Model-------------")
@@ -442,45 +447,50 @@ def knn_model(X_train, X_test, y_train, y_test, X, y):
     print("---------Baseline Model-----------")
     y_pred_baseline = dummy.predict(X_test)
     printScores(y_test, y_pred_baseline)
-    ki_range = [1, 3, 5, 7, 9]
+    ki_range = [3, 5, 7]
     print("Set of Nearest Neighbors Considered", ki_range)
     knn_performance(X, y, ki_range)
     knn_roc(X, y)
-    plotConfusionMatrix(y_test, knn.predict(X_test))
+    plotConfusionMatrix(y, knn.predict(X))
+
+
+def LogisticRegression():
+    df = pd.read_csv("Final_Dataset.csv")
+    df = remove_unwanted_columns(df)
+    df = clean_dataset(df)
+    logisticRegressionModel(df)
+    # logisticRegressionModel(df)
+    # LogisticRegressionROCCurve(df)
 
 
 def main():
     df = pd.read_csv("Final_Dataset.csv")
     df = remove_unwanted_columns(df)
-    # df = clean_dataset(df)
-    X = df.iloc[:, range(62)]
-    y = df["Label"]
-    X.replace([np.inf, -np.inf], np.nan, inplace=True)
-    X = np.nan_to_num(X)
-    df.drop(df[df['Flow Byts/s'] == 'Infinity'].index, inplace=True)
-    df.drop(df[df['Flow Pkts/s'] == 'Infinity'].index, inplace=True)
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.25, random_state=21
-    )
+    df = clean_dataset(df)
+    # SVM Model
+    # logisticRegressionModel(df)
+    # LogisticRegressionROCCurve(df)
+    # X = df.iloc[:, range(62)]
+    # y = df["Label"]
+    # X.replace([np.inf, -np.inf], np.nan, inplace=True)
+    # X = np.nan_to_num(X)
+    # df.drop(df[df['Flow Byts/s'] == 'Infinity'].index, inplace=True)
+    # df.drop(df[df['Flow Pkts/s'] == 'Infinity'].index, inplace=True)
+    # X_train, X_test, y_train, y_test = train_test_split(
+    #     X, y, test_size=0.25, random_state=21
+    # )
+    #
+    # # kNN Model
+    #
+    # # knn_model(X_train, X_test, y_train, y_test, X, y)
+    #
+    # # Random Forest
+    # # randomForestCrossValidation1(X_train,y_train)
+    # # randomForestCrossValidation2(X_train,y_train)
+    #
+    # randomForestModel(X_train,y_train,X_test,y_test)
+    # randomForestROCCurve(X,y)
 
-    # kNN Model
 
-    knn_model(X_train, X_test, y_train, y_test, X, y)
-
-    # Random Forest
-    # randomForestCrossValidation1(X_train,y_train)
-    # randomForestCrossValidation2(X_train,y_train)
-    
-    randomForestModel(X_train,y_train,X_test,y_test)
-    randomForestROCCurve(X,y)
-
-def LogisticRegression():
-    df = pd.read_csv("Final_Dataset.csv")
-    df = remove_unwanted_columns(df)
-    df = clean_dataset_2(df)
-    logisticRegressionModel(df)
-    LogisticRegressionROCCurve(df)
-
-    
 if __name__ == "__main__":
     LogisticRegression()
