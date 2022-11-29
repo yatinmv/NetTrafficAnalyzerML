@@ -344,13 +344,13 @@ def main():
 
     # kNN Model
 
-    # knn_model(X_train, X_test, y_train, y_test, X, y)
+    knn_model(X_train, X_test, y_train, y_test, X, y)
 
     # Random Forest
     # randomForestCrossValidation1(X_train,y_train)
     # randomForestCrossValidation2(X_train,y_train)
     
-    randomForestModel(X_train,y_train,X_test,y_test)   
+    randomForestModel(X_train,y_train,X_test,y_test)
     randomForestROCCurve(X,y)
    
     
