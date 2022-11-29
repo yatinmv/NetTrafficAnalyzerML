@@ -104,13 +104,13 @@ def printScores(y_test, y_pred):
     )
 
 def printScores(y_test,y_pred):
-    print('Accuracy score: %.2f%%' %(accuracy_score(y_test, y_pred)*100))  
-    print('Precision score: %.2f%%' % (precision_score(y_test, y_pred, average= 'weighted')*100))
-    print('Recall score: %.2f%%' % (recall_score(y_test, y_pred, average= 'weighted')*100))
-    print('F1 score: %.2f%%' % (f1_score(y_test, y_pred, average= 'weighted')*100))
+    print('Accuracy score: %.2f%%' %(accuracy_score(y_test, y_pred)*100))
+    print('Precision score: %.2f%%' % (precision_score(y_test, y_pred, average='weighted')*100))
+    print('Recall score: %.2f%%' % (recall_score(y_test, y_pred, average='weighted')*100))
+    print('F1 score: %.2f%%' % (f1_score(y_test, y_pred, average='weighted')*100))
 
 def randomForestROCCurve(X,y):
-    classes = ['Normal Traffic','VPN','Tor']
+    classes = ['Normal Traffic', 'VPN', 'Tor']
     y = label_binarize(y, classes=classes)
     n_classes = 3
     
@@ -164,6 +164,7 @@ def randomForestROCCurve(X,y):
     plt.legend(loc="lower right")
     plt.show()
 
+
 def randomForestCrossValidation1(X_train,y_train):
     # sns.set(rc={'figure.figsize':(9,6)})
     plt.figure()
@@ -190,6 +191,7 @@ def randomForestCrossValidation1(X_train,y_train):
 
     plt.legend(loc="lower right")
     plt.show()
+
 
 def randomForestCrossValidation2(X_train, y_train):
     plt.figure()
@@ -269,7 +271,7 @@ def knn_roc(X, y):
 
     # shuffle and split training and test sets
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y_roc, test_size=0.33, random_state=0
+        X, y_roc, test_size=0.25, random_state=0
     )
 
     # classifier
@@ -321,11 +323,11 @@ def knn_model(X_train, X_test, y_train, y_test, X, y):
     print("---------Baseline Model-----------")
     y_pred_baseline = dummy.predict(X_test)
     printScores(y_test, y_pred_baseline)
-    ki_range = [3, 5, 7]
+    ki_range = [1, 3, 5, 7, 9]
     print("Set of Nearest Neighbors Considered", ki_range)
     knn_performance(X, y, ki_range)
     knn_roc(X, y)
-    plotConfusionMatrix(y, knn.predict(X))
+    plotConfusionMatrix(y_test, knn.predict(X_test))
 
 
 def main():
@@ -352,9 +354,6 @@ def main():
     
     randomForestModel(X_train,y_train,X_test,y_test)
     randomForestROCCurve(X,y)
-   
-    
-    
 
     
 if __name__ == "__main__":
