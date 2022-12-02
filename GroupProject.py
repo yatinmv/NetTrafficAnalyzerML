@@ -60,14 +60,15 @@ def remove_unwanted_columns(df):
 def plotConfusionMatrix(y_test, ypred):
     fig = plt.figure(figsize=(10, 5), dpi=100)
     ax1 = fig.add_subplot(111)
-    cm = confusion_matrix(y_test, ypred)  # , labels= target_names)
+    target_names = [ "VPN","Tor","Normal Traffic"]
+    cm = confusion_matrix(y_test, ypred , labels= target_names)
     # Printing Confusion Matrix
     print(cm)
     sns.heatmap(cm, annot=True, cbar=False, fmt="d", linewidths=0.5, cmap="Blues")
     ax1.set_title("Confusion Matrix")
     ax1.set_xlabel("Predicted class")
     ax1.set_ylabel("Actual class")
-    target_names = set(ypred)
+   
     ax1.set_xticklabels(target_names)
     ax1.set_yticklabels(target_names)
     plt.show()
@@ -202,7 +203,7 @@ def SVM_ROC_Curve(df):
     necessary_col.remove("Out_put")
     necessary_col.remove("Label")
     X = df[necessary_col]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0, train_size=.80)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0, train_size=.75)
     scaler = StandardScaler()
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.fit_transform(X_test)
@@ -375,18 +376,25 @@ def randomForestCrossValidation2(X_train, y_train):
 def randomForestModel(X_train, y_train, X_test, y_test):
     # Creating the Training and Test set from data
 
-    classifier = RandomForestClassifier(n_estimators = 100, max_features = 10, criterion = 'entropy', random_state = 42,max_depth=20)
+    # nEstimators vs maxFeatures
+    randomForestCrossValidation1(X_train,y_train)
+
+    # nEstimators vs maxDepth 
+    randomForestCrossValidation2(X_train,y_train)
+
+    classifier = RandomForestClassifier(n_estimators = 25, max_features = 5, criterion = 'entropy', random_state = 42,max_depth=15)
     classifier.fit(X_train, y_train)
     # Predicting the Test set results
     y_pred = classifier.predict(X_test)
     y_pred_train = classifier.predict(X_train)
     # getAccuracy(classifier,X,y)
     plotConfusionMatrix(y_test,y_pred)
-    print("TEST Scores")
+    print("Test Scores")
     printScores(y_test, y_pred)
     print("Train Scores")
     printScores(y_train, y_pred_train)
     plotConfusionMatrix(y_train, y_pred_train)
+    randomForestROCCurve(X,y)
 
 
 def knn_performance(X, y, ki_range):
@@ -419,6 +427,7 @@ def knn_performance(X, y, ki_range):
     plt.title("Graph of F1 Score and k")
     plt.tight_layout()
     plt.show()
+
 
 
 def knn_roc(X, y):
@@ -511,6 +520,16 @@ def baseLineModel(df):
     # print("Basline confusion Matrix train ")
     # plotConfusionMatrix(y_train,y_pred_baseline_train)
 
+
+def svm_model():
+    df = pd.read_csv("Final_Dataset.csv")
+    df = remove_unwanted_columns(df)
+    df = clean_dataset(df)
+    svm_scores(df)
+    SVM_ROC_Curve(df)
+
+
+
 def combinedROCCurve(df):
     classes = ['Normal Traffic', 'VPN', 'Tor']
     n_classes = 3
@@ -533,10 +552,11 @@ def combinedROCCurve(df):
     # Learn to predict each class against the other
     classifier_lin = OneVsRestClassifier(LinearSVC(C=1, verbose=1, max_iter=10000, multi_class="ovr"))
     y_score_lin = classifier_lin.fit(X_poly_features, y_train).predict(X_test_features)
+    # y_train_score = classifier_lin.fit(X_poly_features, y_train).predict(X_poly_features)
     clf = OneVsRestClassifier(KNeighborsClassifier(n_neighbors=3, weights='uniform'))
     y_score_knn = clf.fit(X_train, y_train).predict(X_test)
     classifier_for = OneVsRestClassifier(
-        RandomForestClassifier(n_estimators=100, max_features=10, criterion='entropy', random_state=42, max_depth=20))
+        RandomForestClassifier(n_estimators=25, max_features=5, criterion='entropy', random_state=42, max_depth=15))
     y_score_for = classifier_for.fit(X_train, y_train).predict(X_test)
     dummy = DummyClassifier(strategy="most_frequent").fit(X_train, y_train)
     y_pred_baseline = dummy.predict(X_test)
@@ -599,41 +619,40 @@ def combinedROCCurve(df):
     plt.show()
 
 def main():
+
+#   Load the dataset csv in a dataframe
     df = pd.read_csv("Final_Dataset.csv")
+
+#   Pre-process the data 
     df = remove_unwanted_columns(df)
+    df.drop(df[df['Flow Byts/s'] == 'Infinity'].index, inplace=True)
+    df.drop(df[df['Flow Pkts/s'] == 'Infinity'].index, inplace=True)
     X = df.iloc[:, range(62)]
     y = df["Label"]
     X.replace([np.inf, -np.inf], np.nan, inplace=True)
     X = np.nan_to_num(X)
-    df.drop(df[df['Flow Byts/s'] == 'Infinity'].index, inplace=True)
-    df.drop(df[df['Flow Pkts/s'] == 'Infinity'].index, inplace=True)
+   
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.25, random_state=21
     )
 
-    #  Base Line Model details
-    baseLineModel(df)
-    # SVM Model Hyperparameter Selection
-    SVM_ModelSelection()
-    # SVM Model Training
+#  Base Line Model details
+    # baseLineModel(df)
+# SVM Model Hyperparameter Selection
+    # SVM_ModelSelection()
+
+
+#  SVM Model
     svm_model()
 
-    # kNN Model
+# kNN Model
     knn_model(X_train, X_test, y_train, y_test, X, y)
 
-    #Random Forest
-    # randomForestCrossValidation1(X_train,y_train)
-    # randomForestCrossValidation2(X_train,y_train)
-
+#Random Forest Model
+ 
     randomForestModel(X_train,y_train,X_test,y_test)
-    randomForestROCCurve(X,y)
-
-def svm_model():
-    df = pd.read_csv("Final_Dataset.csv")
-    df = remove_unwanted_columns(df)
-    df = clean_dataset(df)
-    svm_scores(df)
-    SVM_ROC_Curve(df)
+    
+    
 
 
     
